@@ -1,0 +1,23 @@
+{
+  "name": "internet-monitor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:backend": "npm run dev -w packages/backend",
+    "dev:dashboard": "npm run dev -w packages/dashboard",
+    "build:shared": "npm run build -w packages/shared"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": ""
+}
