@@ -85,6 +85,25 @@ export default function Dashboard() {
         return () => clearInterval(interval);
     }, [selectedDevice]);
 
+    // Toggle device monitoring (Start/Stop)
+    const toggleDevice = async (device: Device) => {
+        const newEnabled = !(device.status === 'online');
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/device-settings/${device.deviceId}`, {
+                settings: { enabled: newEnabled }
+            });
+            setDevices(prev =>
+                prev.map(d =>
+                    d.deviceId === device.deviceId
+                        ? { ...d, status: newEnabled ? 'online' : 'offline' }
+                        : d
+                )
+            );
+        } catch (err) {
+            console.error('Failed to toggle device', err);
+        }
+    };
+
     if (loading) return <div className="p-6 text-center text-gray-500">Loading dashboard…</div>;
 
     return (
@@ -176,7 +195,7 @@ export default function Dashboard() {
                 </Card>
             </div>
 
-            {/* ---------- Devices Table (Corporate style) ---------- */}
+            {/* ---------- Devices Table ---------- */}
             <Card className="border border-gray-200 shadow-sm">
                 <CardHeader className="pb-3 border-b border-gray-100 px-6 pt-5">
                     <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
@@ -233,7 +252,16 @@ export default function Dashboard() {
                                                 {new Date(device.lastSeen).toLocaleString()}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex gap-3">
+                                                <div className="flex gap-2 items-center">
+                                                    <button
+                                                        className={`text-xs font-medium px-2 py-1 rounded border ${device.status === 'online'
+                                                            ? 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100'
+                                                            : 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100'
+                                                            }`}
+                                                        onClick={() => toggleDevice(device)}
+                                                    >
+                                                        {device.status === 'online' ? 'Stop' : 'Start'}
+                                                    </button>
                                                     <button
                                                         className="text-blue-600 hover:text-blue-800 text-sm font-medium underline underline-offset-2"
                                                         onClick={() => setSelectedDevice(device)}
@@ -257,7 +285,7 @@ export default function Dashboard() {
                 </CardContent>
             </Card>
 
-            {/* ---------- Speed Test Chart (collapsible / conditional) ---------- */}
+            {/* ---------- Speed Test Chart ---------- */}
             {selectedDevice && (
                 <Card className="border border-gray-200 shadow-sm">
                     <CardHeader className="pb-3 border-b border-gray-100 px-6 pt-5">
@@ -293,7 +321,7 @@ export default function Dashboard() {
                                         <Line
                                             type="monotone"
                                             dataKey="download"
-                                            stroke="#2563eb"  // corporate blue
+                                            stroke="#2563eb"
                                             strokeWidth={2.5}
                                             dot={false}
                                             name="Download"
@@ -301,7 +329,7 @@ export default function Dashboard() {
                                         <Line
                                             type="monotone"
                                             dataKey="upload"
-                                            stroke="#059669"  // corporate green
+                                            stroke="#059669"
                                             strokeWidth={2.5}
                                             dot={false}
                                             name="Upload"
