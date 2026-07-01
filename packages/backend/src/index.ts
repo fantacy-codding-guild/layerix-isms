@@ -11,6 +11,8 @@ import deviceRoutes from './routes/devices';
 import speedtestRoutes from './routes/speedtests';
 import deviceSettingsRoutes from './routes/deviceSettings';
 import dashboardRoutes from './routes/dashboard';
+import userRoutes from './routes/user';
+import { authenticateUser } from './middleware/auth';
 
 const app = express();
 app.use(cors());
@@ -21,6 +23,8 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/speedtests', speedtestRoutes);
 app.use('/api/device-settings', deviceSettingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/user', authenticateUser, userRoutes);
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI!)
