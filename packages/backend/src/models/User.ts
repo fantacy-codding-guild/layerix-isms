@@ -1,3 +1,4 @@
+//packages\backend\src\models\User.ts
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -7,6 +8,8 @@ export interface IUser extends mongoose.Document {
     name?: string;
     otpHash?: string;
     otpExpiry?: Date;
+    registrationToken?: string;            // ← add
+    registrationTokenExpiry?: Date;        // ← add
     comparePassword?(candidate: string): Promise<boolean>;
 }
 
@@ -17,6 +20,8 @@ const userSchema = new mongoose.Schema<IUser>(
         name: String,
         otpHash: String,
         otpExpiry: Date,
+        registrationToken: String,          // ← add
+        registrationTokenExpiry: Date,      // ← add
     },
     { timestamps: true }
 );

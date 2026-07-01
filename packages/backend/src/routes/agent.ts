@@ -2,6 +2,7 @@ import express from 'express';
 import { v4 as uuid } from 'uuid';
 import Device from '../models/Device';
 import SpeedTest from '../models/SpeedTest';
+import User from '../models/User';
 
 const router = express.Router();
 
@@ -78,6 +79,50 @@ router.get('/config', authenticateAgent, async (req, res) => {
         settings: device.settings,
         googleSheetId: process.env.GOOGLE_SHEET_ID || null,
     });
+});
+
+router.post('/register', async (req, res) => {
+    try {
+        const { deviceId, computerName, os, macAddress, version, registrationToken } = req.body;
+
+        // If a registration token is provided, find the user and assign
+        let userId = null;
+        if (registrationToken) {
+            const user = await User.findOne({
+                registrationToken,
+                registrationTokenExpiry: { $gt: new Date() },
+            });
+            if (!user) return res.status(400).json({ error: 'Invalid or expired registration token' });
+            userId = user._id;
+            // clear the token after use
+            user.registrationToken = undefined;
+            user.registrationTokenExpiry = undefined;
+            await user.save();
+        }
+
+        const existing = await Device.findOne({ deviceId });
+        if (existing) {
+            return res.status(400).json({ error: 'Device already registered' });
+        }
+
+        const token = uuid();
+        const device = new Device({
+            deviceId,
+            computerName,
+            os,
+            macAddress,
+            version,
+            token,
+            userId,          // ← assigned
+            status: 'online',
+            lastSeen: new Date(),
+        });
+        await device.save();
+        res.status(201).json({ token, deviceId: device.deviceId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Registration failed' });
+    }
 });
 
 export default router;
