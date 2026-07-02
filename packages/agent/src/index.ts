@@ -56,7 +56,7 @@ async function register(): Promise<string> {
         macAddress: process.env.MAC_ADDRESS || '00:00:00:00:00:00',
         version: process.env.VERSION || '1.0.0',
     };
-    // Include the registration token if it's provided in the .env file
+    // This sends the registration token to link the device to your account
     if (process.env.REGISTRATION_TOKEN) {
         payload.registrationToken = process.env.REGISTRATION_TOKEN;
     }
