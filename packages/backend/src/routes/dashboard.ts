@@ -1,14 +1,17 @@
 import express from 'express';
 import Device from '../models/Device';
 import SpeedTest from '../models/SpeedTest';
+import cache from '../utils/cache';
 
 const router = express.Router();
 
 router.get('/summary', async (_req, res) => {
     try {
+        const cached = cache.get('dashboard_summary');
+        if (cached) return res.json(cached);
+
         const totalDevices = await Device.countDocuments();
         const onlineDevices = await Device.countDocuments({ status: 'online' });
-
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const recentTests = await SpeedTest.find({ timestamp: { $gte: oneHourAgo } }).lean();
 
@@ -20,13 +23,15 @@ router.get('/summary', async (_req, res) => {
             avgUpload = sumUpload / recentTests.length;
         }
 
-        res.json({
+        const summary = {
             totalDevices,
             onlineDevices,
             avgDownload: Math.round(avgDownload * 100) / 100,
             avgUpload: Math.round(avgUpload * 100) / 100,
             recentTestCount: recentTests.length,
-        });
+        };
+        cache.set('dashboard_summary', summary);
+        res.json(summary);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to load summary' });

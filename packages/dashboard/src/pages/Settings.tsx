@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, Monitor } from 'lucide-react';
+import { ArrowLeft, Save, Monitor, AlertTriangle } from 'lucide-react';
 
 export default function Settings() {
     const { deviceId } = useParams<{ deviceId: string }>();
@@ -17,19 +17,32 @@ export default function Settings() {
     });
     const [saved, setSaved] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         axios
             .get(`${import.meta.env.VITE_API_URL}/api/device-settings/${deviceId}`)
             .then(res => setSettings(res.data.settings))
-            .catch(err => console.error(err))
+            .catch(err => {
+                console.error(err);
+                setError('Could not load device settings.');
+            })
             .finally(() => setLoading(false));
     }, [deviceId]);
 
     const handleSave = async () => {
-        await axios.put(`${import.meta.env.VITE_API_URL}/api/device-settings/${deviceId}`, { settings });
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        setSaving(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/device-settings/${deviceId}`, { settings });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save settings. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (loading) {
@@ -41,16 +54,15 @@ export default function Settings() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900 dark:to-slate-800 p-6 space-y-6">
-            {/* Header */}
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 p-6 space-y-6">
             <div className="flex items-center gap-3">
                 <Link
                     to="/"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow hover:shadow-md transition"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white px-3 py-2 rounded-lg shadow hover:shadow-md transition"
                 >
                     <ArrowLeft size={16} /> Dashboard
                 </Link>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Device Settings</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Device Settings</h1>
             </div>
 
             <Card className="max-w-2xl mx-auto shadow-md">
@@ -61,10 +73,15 @@ export default function Settings() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Enabled Toggle */}
+                    {error && (
+                        <div className="p-3 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" /> {error}
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="font-medium text-gray-700 dark:text-gray-200">Monitoring Enabled</p>
+                            <p className="font-medium text-gray-700">Monitoring Enabled</p>
                             <p className="text-sm text-gray-500">Turn on/off automatic speed tests</p>
                         </div>
                         <button
@@ -80,12 +97,9 @@ export default function Settings() {
                         </button>
                     </div>
 
-                    {/* Time Range */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Start Time
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                             <Input
                                 type="time"
                                 value={settings.startTime}
@@ -93,9 +107,7 @@ export default function Settings() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                End Time
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
                             <Input
                                 type="time"
                                 value={settings.endTime}
@@ -104,9 +116,8 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {/* Frequency */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Test Frequency (minutes)
                         </label>
                         <Input
@@ -118,11 +129,8 @@ export default function Settings() {
                         <p className="text-xs text-gray-500 mt-1">How often to run a speed test within the schedule</p>
                     </div>
 
-                    {/* Timezone */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Timezone
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
                         <Input
                             value={settings.timezone}
                             onChange={e => setSettings({ ...settings, timezone: e.target.value })}
@@ -130,10 +138,9 @@ export default function Settings() {
                         <p className="text-xs text-gray-500 mt-1">e.g., Asia/Kolkata, America/New_York</p>
                     </div>
 
-                    {/* Save Button */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button onClick={handleSave} className="gap-2">
-                            <Save size={16} /> Save Settings
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+                        <Button onClick={handleSave} disabled={saving} className="gap-2">
+                            <Save size={16} /> {saving ? 'Saving…' : 'Save Settings'}
                         </Button>
                         {saved && (
                             <span className="text-green-600 text-sm font-medium animate-pulse">

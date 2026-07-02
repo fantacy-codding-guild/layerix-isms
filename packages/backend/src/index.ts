@@ -1,3 +1,4 @@
+//packages\backend\src\index.ts
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -13,6 +14,7 @@ import deviceSettingsRoutes from './routes/deviceSettings';
 import dashboardRoutes from './routes/dashboard';
 import userRoutes from './routes/user';
 import { authenticateUser } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 app.use(cors());
@@ -24,6 +26,7 @@ app.use('/api/speedtests', speedtestRoutes);
 app.use('/api/device-settings', deviceSettingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/user', authenticateUser, userRoutes);
+app.use(errorHandler);
 
 
 // Connect to MongoDB
