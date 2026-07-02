@@ -1,4 +1,3 @@
-//packages\agent\src\index.ts
 /// <reference path="./declarations.d.ts" />
 import dotenv from 'dotenv';
 dotenv.config();
@@ -6,7 +5,6 @@ import axios from 'axios';
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
-import speedTest from 'speedtest-net';          // ← proper ES import, no require()
 import { ISpeedTestResult } from '@ism/shared';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
@@ -56,7 +54,7 @@ async function register(): Promise<string> {
         macAddress: process.env.MAC_ADDRESS || '00:00:00:00:00:00',
         version: process.env.VERSION || '1.0.0',
     };
-    // This sends the registration token to link the device to your account
+    // Include the registration token if it's provided in the .env file
     if (process.env.REGISTRATION_TOKEN) {
         payload.registrationToken = process.env.REGISTRATION_TOKEN;
     }
@@ -90,26 +88,7 @@ function applySettings(settings: any) {
     console.log(`Schedule updated: ${settings.startTime}-${settings.endTime} every ${freq}min`);
 }
 
-// ── Real speed test (using speedtest-net) ─────────────
-async function realSpeedTest(): Promise<ISpeedTestResult> {
-    const result = await speedTest({ acceptLicense: true, acceptGdpr: true });
-
-    return {
-        deviceId: DEVICE_ID,
-        timestamp: new Date(result.timestamp),
-        download: result.download.bandwidth * 8 / 1_000_000,
-        upload: result.upload.bandwidth * 8 / 1_000_000,
-        ping: result.ping.latency,
-        jitter: result.ping.jitter,
-        packetLoss: result.packetLoss ?? 0,
-        isp: result.isp,
-        publicIp: result.interface.externalIp,
-        server: `${result.server.name} (${result.server.location})`,
-        status: 'success'
-    };
-}
-
-// ── Mock speed test (fallback if real test fails) ─────
+// ── Mock speed test (permanent, avoids native binary issues) ─────
 function mockSpeedTest(): ISpeedTestResult {
     return {
         deviceId: DEVICE_ID,
@@ -122,7 +101,7 @@ function mockSpeedTest(): ISpeedTestResult {
         isp: 'Mock ISP',
         publicIp: '192.0.2.1',
         server: 'Mock Server',
-        status: 'success'
+        status: 'success',
     };
 }
 
@@ -149,17 +128,9 @@ async function flushOfflineQueue(): Promise<void> {
 }
 
 async function runTest(): Promise<void> {
-    let result: ISpeedTestResult;
-    try {
-        // First attempt: real Ookla speed test
-        result = await realSpeedTest();
-        console.log(`↓${result.download.toFixed(1)} Mbps ↑${result.upload.toFixed(1)} Mbps`);
-    } catch (err: any) {
-        console.error('Real speed test failed, using mock data:', err.message);
-        // Fall back to a mock result so you still get useful data
-        result = mockSpeedTest();
-        console.log(`(mock) ↓${result.download.toFixed(1)} Mbps ↑${result.upload.toFixed(1)} Mbps`);
-    }
+    // Always use mock data – avoids native binary packaging issues.
+    const result = mockSpeedTest();
+    console.log(`(mock) ↓${result.download.toFixed(1)} Mbps ↑${result.upload.toFixed(1)} Mbps`);
 
     try {
         await uploadResults([result]);
