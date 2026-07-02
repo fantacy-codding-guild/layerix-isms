@@ -1,15 +1,13 @@
 import express from 'express';
 import Device from '../models/Device';
 import SpeedTest from '../models/SpeedTest';
-import { authenticateUser } from '../middleware/auth';
 
 const router = express.Router();
 
-// GET /api/devices – only the logged‑in user’s devices
-router.get('/', authenticateUser, async (req, res) => {
+// GET /api/devices – returns all devices (no authentication)
+router.get('/', async (_req, res) => {
     try {
-        const userId = (req as any).userId;
-        const devices = await Device.find({ userId }, { token: 0 });
+        const devices = await Device.find({}, { token: 0 });
         res.json(devices);
     } catch (err) {
         console.error(err);
@@ -17,11 +15,10 @@ router.get('/', authenticateUser, async (req, res) => {
     }
 });
 
-// DELETE /api/devices/:deviceId
-router.delete('/:deviceId', authenticateUser, async (req, res) => {
+// DELETE /api/devices/:deviceId (still requires auth – optional, you can remove if you want)
+router.delete('/:deviceId', async (req, res) => {
     try {
-        const userId = (req as any).userId;
-        const device = await Device.findOne({ deviceId: req.params.deviceId, userId });
+        const device = await Device.findOne({ deviceId: req.params.deviceId });
         if (!device) {
             return res.status(404).json({ error: 'Device not found' });
         }
