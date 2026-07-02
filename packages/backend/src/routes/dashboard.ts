@@ -1,18 +1,28 @@
 import express from 'express';
 import Device from '../models/Device';
 import SpeedTest from '../models/SpeedTest';
+import { authenticateUser } from '../middleware/auth';
 
 const router = express.Router();
 
-// GET /api/dashboard/summary
-router.get('/summary', async (_req, res) => {
+router.get('/summary', authenticateUser, async (req, res) => {
     try {
-        const totalDevices = await Device.countDocuments();
-        const onlineDevices = await Device.countDocuments({ status: 'online' });
+        const userId = (req as any).userId;
 
-        // Last hour averages
+        // Get only this user’s devices
+        const userDevices = await Device.find({ userId });
+        const totalDevices = userDevices.length;
+        const onlineDevices = userDevices.filter(d => d.status === 'online').length;
+
+        // Get IDs of the user’s devices
+        const deviceIds = userDevices.map(d => d.deviceId);
+
+        // Last hour averages for this user’s devices
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        const recentTests = await SpeedTest.find({ timestamp: { $gte: oneHourAgo } }).lean();
+        const recentTests = await SpeedTest.find({
+            deviceId: { $in: deviceIds },
+            timestamp: { $gte: oneHourAgo },
+        }).lean();
 
         let avgDownload = 0, avgUpload = 0;
         if (recentTests.length > 0) {
@@ -30,6 +40,7 @@ router.get('/summary', async (_req, res) => {
             recentTestCount: recentTests.length,
         });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Failed to load summary' });
     }
 });
