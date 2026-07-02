@@ -1,3 +1,4 @@
+//packages\agent\src\index.ts
 /// <reference path="./declarations.d.ts" />
 import dotenv from 'dotenv';
 dotenv.config();
@@ -48,13 +49,18 @@ function saveOfflineQueue(queue: ISpeedTestResult[]): void {
 
 // ── Registration ─────────────────────────────────────
 async function register(): Promise<string> {
-    const response = await axios.post(`${BACKEND_URL}/api/agent/register`, {
+    const payload: any = {
         deviceId: DEVICE_ID,
         computerName: process.env.COMPUTER_NAME || 'UnknownPC',
         os: process.env.OS || 'Unknown',
         macAddress: process.env.MAC_ADDRESS || '00:00:00:00:00:00',
-        version: process.env.VERSION || '1.0.0'
-    });
+        version: process.env.VERSION || '1.0.0',
+    };
+    // Include the registration token if it's provided in the .env file
+    if (process.env.REGISTRATION_TOKEN) {
+        payload.registrationToken = process.env.REGISTRATION_TOKEN;
+    }
+    const response = await axios.post(`${BACKEND_URL}/api/agent/register`, payload);
     return response.data.token;
 }
 
